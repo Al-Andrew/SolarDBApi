@@ -2,6 +2,8 @@ package com.solardb;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.web.util.pattern.PathPatternParser;
+import org.springframework.web.util.pattern.PatternParseException;
 
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -19,6 +21,7 @@ public class SolarDbApiApplication {
         // Some PaaS providers expose a non-JDBC DB_URL like "postgres://...".
         // Spring's datasource URL must be JDBC ("jdbc:postgresql://..."), so normalize early.
         normalizeDbUrlEnv();
+        normalizeMvcStaticPathPattern();
         logJdbcDiagnostics();
         SpringApplication app = new SpringApplication(SolarDbApiApplication.class);
         app.addListeners(new StartupDiagnosticsListener());
@@ -244,6 +247,27 @@ public class SolarDbApiApplication {
             if (t != null) return t;
         }
         return null;
+    }
+
+    private static void normalizeMvcStaticPathPattern() {
+        // Runtime env vars can inject Ant-style patterns (e.g. "/**/*.js") that
+        // are rejected by Spring's PathPattern parser in Boot 3+.
+        String configured = firstNonBlank(
+                System.getProperty("spring.mvc.static-path-pattern"),
+                System.getenv("SPRING_MVC_STATIC_PATH_PATTERN")
+        );
+        if (configured == null) {
+            return;
+        }
+
+        try {
+            PathPatternParser.defaultInstance.parse(configured);
+        } catch (PatternParseException ex) {
+            String fallback = "/**";
+            System.err.println("[solardb-api] Invalid spring.mvc.static-path-pattern: '" + configured + "' (" + ex.getMessage() + ")");
+            System.err.println("[solardb-api] Falling back to safe default: '" + fallback + "'");
+            System.setProperty("spring.mvc.static-path-pattern", fallback);
+        }
     }
 }
 
