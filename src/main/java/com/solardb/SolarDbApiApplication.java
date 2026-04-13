@@ -3,6 +3,11 @@ package com.solardb;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.Socket;
+import java.net.URI;
+
 @SpringBootApplication
 public class SolarDbApiApplication {
     public static void main(String[] args) {
@@ -23,6 +28,7 @@ public class SolarDbApiApplication {
             if (normalized != null) {
                 System.setProperty("spring.datasource.url", normalized);
                 logResolvedDatasource("SPRING_DATASOURCE_URL", normalized);
+                logConnectivityDiagnostics(normalized);
             }
             return;
         }
@@ -35,6 +41,7 @@ public class SolarDbApiApplication {
         if (normalized != null) {
             System.setProperty("spring.datasource.url", normalized);
             logResolvedDatasource("DB_URL", normalized);
+            logConnectivityDiagnostics(normalized);
         }
     }
 
@@ -61,5 +68,59 @@ public class SolarDbApiApplication {
         }
         System.out.println("[solardb-api] Resolved spring.datasource.url from " + source + ": " + safe);
     }
+
+    private static void logConnectivityDiagnostics(String jdbcUrl) {
+        String enable = trimToNull(System.getenv("DB_CONNECTIVITY_DIAG"));
+        if (enable == null || !(enable.equalsIgnoreCase("true") || enable.equals("1") || enable.equalsIgnoreCase("yes"))) {
+            return;
+        }
+
+        HostPort hp = tryParseHostPortFromJdbc(jdbcUrl);
+        if (hp == null) {
+            System.out.println("[solardb-api] DB connectivity diag: unable to parse host/port from JDBC url");
+            return;
+        }
+
+        try {
+            InetAddress[] addrs = InetAddress.getAllByName(hp.host());
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < addrs.length; i++) {
+                if (i > 0) sb.append(", ");
+                sb.append(addrs[i].getHostAddress());
+            }
+            System.out.println("[solardb-api] DB connectivity diag: " + hp.host() + " resolves to [" + sb + "]");
+        } catch (Exception e) {
+            System.out.println("[solardb-api] DB connectivity diag: DNS resolution failed for " + hp.host() + " (" + e.getClass().getSimpleName() + ": " + e.getMessage() + ")");
+            return;
+        }
+
+        try (Socket s = new Socket()) {
+            s.connect(new InetSocketAddress(hp.host(), hp.port()), 2000);
+            System.out.println("[solardb-api] DB connectivity diag: TCP connect OK to " + hp.host() + ":" + hp.port());
+        } catch (Exception e) {
+            System.out.println("[solardb-api] DB connectivity diag: TCP connect FAILED to " + hp.host() + ":" + hp.port() + " (" + e.getClass().getSimpleName() + ": " + e.getMessage() + ")");
+        }
+    }
+
+    private static HostPort tryParseHostPortFromJdbc(String jdbcUrl) {
+        // Expected: jdbc:postgresql://host:port/db?params...
+        String s = jdbcUrl;
+        if (!s.startsWith("jdbc:")) return null;
+        s = s.substring("jdbc:".length());
+        if (!s.startsWith("postgresql://")) return null;
+
+        try {
+            URI uri = URI.create(s);
+            String host = uri.getHost();
+            int port = uri.getPort();
+            if (host == null || host.isBlank()) return null;
+            if (port <= 0) port = 5432;
+            return new HostPort(host, port);
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
+    private record HostPort(String host, int port) {}
 }
 
