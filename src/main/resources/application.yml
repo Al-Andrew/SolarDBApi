@@ -5,7 +5,8 @@ spring:
   application:
     name: solardb-api
   datasource:
-    url: ${SPRING_DATASOURCE_URL:${DB_URL:jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_DATABASE:${DB_NAME:solardb}}}}
+    # If your platform provides DB_URL as "postgres://...", the app normalizes it at startup.
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_DATABASE:${DB_NAME:solardb}}}
     username: ${SPRING_DATASOURCE_USERNAME:${DB_USERNAME:${DB_USER:solardb}}}
     password: ${SPRING_DATASOURCE_PASSWORD:${DB_PASSWORD:solardb}}
   jpa:

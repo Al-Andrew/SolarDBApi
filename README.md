@@ -45,9 +45,17 @@ docker run --rm -p 8080:8080 \
 
 Configure Postgres in `src/main/resources/application.yml`:
 
-- DB: `solardb`
-- user: `solardb`
-- pass: `solardb`
+- **DB**: defaults to `solardb`
+- **user**: defaults to `solardb`
+- **pass**: defaults to `solardb`
+
+The app reads common PaaS environment variables:
+
+- **`SPRING_DATASOURCE_URL`** (preferred)
+- **`DB_URL`** is also supported (including `postgres://...`; normalized to JDBC at startup)
+- Or compose from **`DB_HOST`**, **`DB_PORT`**, and **`DB_DATABASE`** (or `DB_NAME`)
+- Username from **`SPRING_DATASOURCE_USERNAME`**, `DB_USERNAME` (or `DB_USER`)
+- Password from **`SPRING_DATASOURCE_PASSWORD`** or `DB_PASSWORD`
 
 Flyway will create tables on startup.
 
