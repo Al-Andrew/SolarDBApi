@@ -42,7 +42,12 @@ spring:
 
 # OpenAPI / Swagger UI (springdoc). JSON spec: GET /v3/api-docs
 springdoc:
+  # Swagger UI resource handler currently crashes with PathPattern parsing
+  # in this runtime. Keep UI off by default so the API can boot in deploys.
   swagger-ui:
+    enabled: ${SPRINGDOC_SWAGGER_UI_ENABLED:false}
     tags-sorter: alpha
     operations-sorter: method
+  api-docs:
+    enabled: ${SPRINGDOC_API_DOCS_ENABLED:true}
 

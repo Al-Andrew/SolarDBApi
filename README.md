@@ -59,6 +59,37 @@ The app reads common PaaS environment variables:
 
 Flyway will create tables on startup.
 
+### Local stack via Docker Compose (API + Postgres 17)
+
+Start API + Postgres together:
+
+```bash
+cd /home/aaldea/Work/dev/SolarDB/solardb-api
+docker compose up -d
+```
+
+Check logs:
+
+```bash
+cd /home/aaldea/Work/dev/SolarDB/solardb-api
+docker compose logs -f api
+```
+
+Stop everything:
+
+```bash
+cd /home/aaldea/Work/dev/SolarDB/solardb-api
+docker compose down
+```
+
+If you prefer to run the API from your IDE and only use Postgres from Compose:
+
+```bash
+cd /home/aaldea/Work/dev/SolarDB/solardb-api
+docker compose up -d db
+DB_HOST=localhost DB_PORT=5433 DB_NAME=solardb DB_USER=solardb DB_PASSWORD=solardb gradle bootRun
+```
+
 ## API documentation (OpenAPI)
 
 The API is documented automatically with **springdoc-openapi** (Swagger UI + OpenAPI 3 JSON).

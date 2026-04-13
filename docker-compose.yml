@@ -1,0 +1,38 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: solardb-api
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      SERVER_PORT: 8080
+      DB_URL: postgres://solardb:solardb@db:5432/solardb
+      SOLARDB_AUTH_PASSWORD: changeme
+      SOLARDB_AUTH_JWT_SECRET: local-dev-secret-local-dev-secret
+    ports:
+      - "8080:8080"
+
+  db:
+    image: postgres:17
+    container_name: solardb-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: solardb
+      POSTGRES_USER: solardb
+      POSTGRES_PASSWORD: solardb
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U solardb -d solardb"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  postgres_data:
