@@ -43,3 +43,6 @@ application-*.yaml
 *.key
 *.crt
 
+
+# bin 
+bin/

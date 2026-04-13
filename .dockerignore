@@ -1,0 +1,14 @@
+.git
+.idea
+.vscode
+
+# Gradle build outputs / caches
+.gradle
+build
+
+# OS/editor junk
+*.swp
+*.tmp
+*.log
+.DS_Store
+

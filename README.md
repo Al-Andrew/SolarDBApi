@@ -18,6 +18,29 @@ cd /home/aaldea/Work/dev/SolarDB/solardb-api
 gradle bootRun
 ```
 
+## Docker
+
+- **Build image**:
+
+```bash
+docker build -t solardb-api:local .
+```
+
+- **Run container** (defaults to port 8080):
+
+```bash
+docker run --rm -p 8080:8080 solardb-api:local
+```
+
+- **Run with environment overrides** (example):
+
+```bash
+docker run --rm -p 8080:8080 \
+  -e SERVER_PORT=8080 \
+  -e JAVA_OPTS="-Xms256m -Xmx512m" \
+  solardb-api:local
+```
+
 ## Database
 
 Configure Postgres in `src/main/resources/application.yml`:
