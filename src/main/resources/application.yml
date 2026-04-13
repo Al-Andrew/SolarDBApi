@@ -5,10 +5,8 @@ spring:
   application:
     name: solardb-api
   datasource:
-    # Sevalla (and most PaaS) inject DB info via environment variables.
-    # Local defaults keep `gradle bootRun` working without extra setup.
-    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:solardb}}
-    username: ${SPRING_DATASOURCE_USERNAME:${DB_USERNAME:solardb}}
+    url: ${SPRING_DATASOURCE_URL:${DB_URL:jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_DATABASE:${DB_NAME:solardb}}}}
+    username: ${SPRING_DATASOURCE_USERNAME:${DB_USERNAME:${DB_USER:solardb}}}
     password: ${SPRING_DATASOURCE_PASSWORD:${DB_PASSWORD:solardb}}
   jpa:
     hibernate:
