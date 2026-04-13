@@ -1,0 +1,7 @@
+plugins {
+    // Allows Gradle toolchains to auto-provision matching JDKs (e.g. Java 21).
+    id 'org.gradle.toolchains.foojay-resolver-convention' version '1.0.0'
+}
+
+rootProject.name = 'solardb-api'
+

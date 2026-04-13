@@ -1,0 +1,45 @@
+# Gradle
+.gradle/
+build/
+**/build/
+
+# Gradle wrapper (keep the wrapper JAR/scripts if you add them later)
+!gradle/wrapper/gradle-wrapper.jar
+!gradlew
+!gradlew.bat
+
+# Java
+*.class
+hs_err_pid*
+replay_pid*
+
+# Logs
+*.log
+logs/
+
+# IntelliJ IDEA
+.idea/
+*.iml
+*.ipr
+*.iws
+out/
+
+# VS Code
+.vscode/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Spring Boot / local config
+application-*.yml
+application-*.yaml
+!.gitkeep
+
+# Env / secrets
+.env
+.env.*
+*.pem
+*.key
+*.crt
+
