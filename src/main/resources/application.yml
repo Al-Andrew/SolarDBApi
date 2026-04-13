@@ -1,6 +1,15 @@
 server:
   port: 8080
 
+solardb:
+  auth:
+    # Set these in prod via env:
+    # - SOLARDB_AUTH_PASSWORD
+    # - SOLARDB_AUTH_JWT_SECRET (>= 32 chars for HS256)
+    password: ${SOLARDB_AUTH_PASSWORD:changeme}
+    jwt-secret: ${SOLARDB_AUTH_JWT_SECRET:changeme-changeme-changeme-changeme}
+    token-ttl-seconds: ${SOLARDB_AUTH_TOKEN_TTL_SECONDS:86400} # 24h
+
 spring:
   application:
     name: solardb-api
