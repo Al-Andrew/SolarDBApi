@@ -37,3 +37,9 @@ spring:
     connect-retries: ${FLYWAY_CONNECT_RETRIES:10}
     connect-retries-interval: ${FLYWAY_CONNECT_RETRIES_INTERVAL:5}
 
+# OpenAPI / Swagger UI (springdoc). JSON spec: GET /v3/api-docs
+springdoc:
+  swagger-ui:
+    tags-sorter: alpha
+    operations-sorter: method
+

@@ -1,6 +1,8 @@
 package com.solardb.api;
 
 import com.solardb.security.AuthProperties;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import org.springframework.http.ResponseEntity;
@@ -14,6 +16,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/auth")
+@Tag(name = "Authentication")
 public class AuthController {
     private final AuthProperties authProperties;
     private final JwtEncoder jwtEncoder;
@@ -24,6 +27,10 @@ public class AuthController {
     }
 
     @PostMapping("/token")
+    @Operation(
+            summary = "Issue access token",
+            description = "Exchanges the configured ingest password for a short-lived JWT (Bearer) used on POST /api/v1/readings."
+    )
     public ResponseEntity<Map<String, Object>> token(@Valid @RequestBody TokenRequest request) {
         if (!constantTimeEquals(authProperties.password(), request.password())) {
             return ResponseEntity.status(401).body(Map.of("error", "invalid_credentials"));

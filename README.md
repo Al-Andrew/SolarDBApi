@@ -59,9 +59,24 @@ The app reads common PaaS environment variables:
 
 Flyway will create tables on startup.
 
+## API documentation (OpenAPI)
+
+The API is documented automatically with **springdoc-openapi** (Swagger UI + OpenAPI 3 JSON).
+
+- **Swagger UI** (try requests in the browser): `http://localhost:8080/swagger-ui.html`
+- **OpenAPI JSON** (for codegen or import into Postman): `http://localhost:8080/v3/api-docs`
+
+In Swagger UI, use **Authorize** and paste the JWT from `POST /api/v1/auth/token` (prefix `Bearer ` is applied by the UI when using the bearer scheme).
+
+## Authentication
+
+- **POST** `/api/v1/auth/token` — body: `{ "password": "<SOLARDB_AUTH_PASSWORD>" }`
+- **Response**: `{ "access_token": "...", "token_type": "Bearer", "expires_in": <seconds> }`
+
 ## Ingest API
 
 - **POST** `/api/v1/readings`
-- **Body**: JSON shaped like `../example.json`
+- **Header**: `Authorization: Bearer <access_token>`
+- **Body**: JSON shaped like `../example.json` (flat key/value object; see OpenAPI schema **Readings**)
 - **Response**: `201 Created` with `{ "readingId": <id> }`
 
