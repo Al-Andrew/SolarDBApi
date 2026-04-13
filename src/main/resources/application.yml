@@ -13,6 +13,9 @@ solardb:
 spring:
   application:
     name: solardb-api
+  mvc:
+    pathmatch:
+      matching-strategy: ant_path_matcher
   datasource:
     # If your platform provides DB_URL as "postgres://...", the app normalizes it at startup.
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_DATABASE:${DB_NAME:solardb}}}
