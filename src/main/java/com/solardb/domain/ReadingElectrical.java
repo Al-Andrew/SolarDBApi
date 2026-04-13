@@ -79,7 +79,7 @@ public class ReadingElectrical {
     @Column(name = "s_grid_va", precision = 12, scale = 3)
     private BigDecimal sGridVa;
 
-    @Column(name = "sload_va", precision = 12, scale = 3)
+    @Column(name = "s_load_va", precision = 12, scale = 3)
     private BigDecimal sLoadVa;
 
     @Column(name = "q_inverter_var", precision = 12, scale = 3)
