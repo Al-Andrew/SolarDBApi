@@ -7,6 +7,9 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.URI;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.util.Properties;
 
 @SpringBootApplication
 public class SolarDbApiApplication {
@@ -14,6 +17,7 @@ public class SolarDbApiApplication {
         // Some PaaS providers expose a non-JDBC DB_URL like "postgres://...".
         // Spring's datasource URL must be JDBC ("jdbc:postgresql://..."), so normalize early.
         normalizeDbUrlEnv();
+        logJdbcDiagnostics();
         SpringApplication.run(SolarDbApiApplication.class, args);
     }
 
@@ -122,5 +126,67 @@ public class SolarDbApiApplication {
     }
 
     private record HostPort(String host, int port) {}
+
+    private static void logJdbcDiagnostics() {
+        String enable = trimToNull(System.getenv("DB_JDBC_DIAG"));
+        if (enable == null || !(enable.equalsIgnoreCase("true") || enable.equals("1") || enable.equalsIgnoreCase("yes"))) {
+            return;
+        }
+
+        String jdbcUrl = trimToNull(System.getProperty("spring.datasource.url"));
+        if (jdbcUrl == null) {
+            jdbcUrl = trimToNull(System.getenv("SPRING_DATASOURCE_URL"));
+        }
+        if (jdbcUrl == null) {
+            System.out.println("[solardb-api] DB JDBC diag: spring.datasource.url not set; skipping");
+            return;
+        }
+
+        String username = firstNonBlank(
+                System.getenv("SPRING_DATASOURCE_USERNAME"),
+                System.getenv("DB_USERNAME"),
+                System.getenv("DB_USER")
+        );
+        String password = firstNonBlank(
+                System.getenv("SPRING_DATASOURCE_PASSWORD"),
+                System.getenv("DB_PASSWORD")
+        );
+
+        Properties props = new Properties();
+        if (username != null) props.setProperty("user", username);
+        if (password != null) props.setProperty("password", password);
+
+        // Keep diagnostics quick and informative.
+        props.setProperty("loginTimeout", "5");
+        props.setProperty("connectTimeout", "5");
+        props.setProperty("socketTimeout", "10");
+
+        // If the user configured sslmode via env, pass it explicitly as well.
+        String sslmode = trimToNull(System.getenv("DB_SSLMODE"));
+        if (sslmode != null) props.setProperty("sslmode", sslmode);
+
+        try {
+            DriverManager.setLoginTimeout(5);
+            try (Connection ignored = DriverManager.getConnection(jdbcUrl, props)) {
+                System.out.println("[solardb-api] DB JDBC diag: JDBC connection OK");
+            }
+        } catch (Exception e) {
+            System.out.println("[solardb-api] DB JDBC diag: JDBC connection FAILED (" + e.getClass().getName() + ": " + e.getMessage() + ")");
+            Throwable c = e.getCause();
+            int depth = 0;
+            while (c != null && depth++ < 8) {
+                System.out.println("[solardb-api] DB JDBC diag: caused by (" + c.getClass().getName() + ": " + c.getMessage() + ")");
+                c = c.getCause();
+            }
+        }
+    }
+
+    private static String firstNonBlank(String... values) {
+        for (String v : values) {
+            String t = trimToNull(v);
+            if (t != null) return t;
+        }
+        return null;
+    }
 }
 
