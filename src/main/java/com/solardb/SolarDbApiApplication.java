@@ -13,17 +13,27 @@ public class SolarDbApiApplication {
     }
 
     private static void normalizeDbUrlEnv() {
-        // If the URL is already provided via Spring property/env, leave it alone.
+        // If the URL is already explicitly set as a Spring property, trust it.
         if (System.getProperty("spring.datasource.url") != null) return;
-        if (System.getenv("SPRING_DATASOURCE_URL") != null && !System.getenv("SPRING_DATASOURCE_URL").isBlank()) return;
 
-        String dbUrl = System.getenv("DB_URL");
-        if (dbUrl == null || dbUrl.isBlank()) return;
+        // Prefer SPRING_DATASOURCE_URL, but normalize it if it is non-JDBC (e.g. "postgres://...").
+        String springUrl = trimToNull(System.getenv("SPRING_DATASOURCE_URL"));
+        if (springUrl != null) {
+            String normalized = normalizeToJdbcPostgres(springUrl);
+            if (normalized != null) {
+                System.setProperty("spring.datasource.url", normalized);
+            }
+            return;
+        }
 
-        String normalized = normalizeToJdbcPostgres(dbUrl.trim());
-        if (normalized == null) return;
+        // Otherwise fall back to DB_URL (commonly "postgres://...") and normalize.
+        String dbUrl = trimToNull(System.getenv("DB_URL"));
+        if (dbUrl == null) return;
 
-        System.setProperty("spring.datasource.url", normalized);
+        String normalized = normalizeToJdbcPostgres(dbUrl);
+        if (normalized != null) {
+            System.setProperty("spring.datasource.url", normalized);
+        }
     }
 
     private static String normalizeToJdbcPostgres(String url) {
@@ -31,6 +41,12 @@ public class SolarDbApiApplication {
         if (url.startsWith("postgres://")) return "jdbc:postgresql://" + url.substring("postgres://".length());
         if (url.startsWith("postgresql://")) return "jdbc:postgresql://" + url.substring("postgresql://".length());
         return null;
+    }
+
+    private static String trimToNull(String s) {
+        if (s == null) return null;
+        String t = s.trim();
+        return t.isEmpty() ? null : t;
     }
 }
 
