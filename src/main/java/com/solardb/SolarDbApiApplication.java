@@ -22,6 +22,7 @@ public class SolarDbApiApplication {
             String normalized = normalizeToJdbcPostgres(springUrl);
             if (normalized != null) {
                 System.setProperty("spring.datasource.url", normalized);
+                logResolvedDatasource("SPRING_DATASOURCE_URL", normalized);
             }
             return;
         }
@@ -33,6 +34,7 @@ public class SolarDbApiApplication {
         String normalized = normalizeToJdbcPostgres(dbUrl);
         if (normalized != null) {
             System.setProperty("spring.datasource.url", normalized);
+            logResolvedDatasource("DB_URL", normalized);
         }
     }
 
@@ -47,6 +49,17 @@ public class SolarDbApiApplication {
         if (s == null) return null;
         String t = s.trim();
         return t.isEmpty() ? null : t;
+    }
+
+    private static void logResolvedDatasource(String source, String jdbcUrl) {
+        // Avoid printing credentials. This is only to help diagnose platform env wiring.
+        String safe = jdbcUrl;
+        int at = safe.indexOf('@');
+        int scheme = safe.indexOf("://");
+        if (scheme >= 0 && at > scheme) {
+            safe = safe.substring(0, scheme + 3) + "***@" + safe.substring(at + 1);
+        }
+        System.out.println("[solardb-api] Resolved spring.datasource.url from " + source + ": " + safe);
     }
 }
 

@@ -18,4 +18,7 @@ spring:
           time_zone: UTC
   flyway:
     enabled: true
+    # Managed Postgres can take a bit to accept connections on deploy.
+    connect-retries: ${FLYWAY_CONNECT_RETRIES:10}
+    connect-retries-interval: ${FLYWAY_CONNECT_RETRIES_INTERVAL:5}
 
