@@ -7,6 +7,8 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.URI;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.util.Properties;
@@ -28,11 +30,9 @@ public class SolarDbApiApplication {
         // Prefer SPRING_DATASOURCE_URL, but normalize it if it is non-JDBC (e.g. "postgres://...").
         String springUrl = trimToNull(System.getenv("SPRING_DATASOURCE_URL"));
         if (springUrl != null) {
-            String normalized = normalizeToJdbcPostgres(springUrl);
-            if (normalized != null) {
-                System.setProperty("spring.datasource.url", normalized);
-                logResolvedDatasource("SPRING_DATASOURCE_URL", normalized);
-                logConnectivityDiagnostics(normalized);
+            JdbcNormalization n = normalizeToJdbcPostgres(springUrl);
+            if (n != null) {
+                applyNormalization("SPRING_DATASOURCE_URL", n);
             }
             return;
         }
@@ -41,19 +41,73 @@ public class SolarDbApiApplication {
         String dbUrl = trimToNull(System.getenv("DB_URL"));
         if (dbUrl == null) return;
 
-        String normalized = normalizeToJdbcPostgres(dbUrl);
-        if (normalized != null) {
-            System.setProperty("spring.datasource.url", normalized);
-            logResolvedDatasource("DB_URL", normalized);
-            logConnectivityDiagnostics(normalized);
+        JdbcNormalization n = normalizeToJdbcPostgres(dbUrl);
+        if (n != null) {
+            applyNormalization("DB_URL", n);
         }
     }
 
-    private static String normalizeToJdbcPostgres(String url) {
-        if (url.startsWith("jdbc:")) return url;
-        if (url.startsWith("postgres://")) return "jdbc:postgresql://" + url.substring("postgres://".length());
-        if (url.startsWith("postgresql://")) return "jdbc:postgresql://" + url.substring("postgresql://".length());
-        return null;
+    private static void applyNormalization(String source, JdbcNormalization n) {
+        System.setProperty("spring.datasource.url", n.jdbcUrl());
+        // If the platform puts user/pass into DB_URL userinfo, also populate Spring username/password
+        // unless they were already provided via env.
+        if (trimToNull(System.getenv("SPRING_DATASOURCE_USERNAME")) == null && trimToNull(System.getenv("DB_USERNAME")) == null && trimToNull(System.getenv("DB_USER")) == null) {
+            if (n.username() != null) System.setProperty("spring.datasource.username", n.username());
+        }
+        if (trimToNull(System.getenv("SPRING_DATASOURCE_PASSWORD")) == null && trimToNull(System.getenv("DB_PASSWORD")) == null) {
+            if (n.password() != null) System.setProperty("spring.datasource.password", n.password());
+        }
+
+        logResolvedDatasource(source, n.jdbcUrl());
+        logConnectivityDiagnostics(n.jdbcUrl());
+    }
+
+    private static JdbcNormalization normalizeToJdbcPostgres(String url) {
+        String u = url.trim();
+        if (u.startsWith("jdbc:")) {
+            // Ensure we don't have userinfo embedded; the driver expects user/pass as properties.
+            String s = u.substring("jdbc:".length());
+            if (!s.startsWith("postgresql://")) return new JdbcNormalization(u, null, null);
+            URI uri = URI.create(s);
+            if (trimToNull(uri.getUserInfo()) == null) return new JdbcNormalization(u, null, null);
+            return rebuildFromUri(uri);
+        }
+
+        if (u.startsWith("postgres://")) u = "postgresql://" + u.substring("postgres://".length());
+        if (!u.startsWith("postgresql://")) return null;
+
+        URI uri = URI.create(u);
+        return rebuildFromUri(uri);
+    }
+
+    private static JdbcNormalization rebuildFromUri(URI uri) {
+        String host = uri.getHost();
+        int port = uri.getPort() > 0 ? uri.getPort() : 5432;
+        String path = uri.getRawPath() == null ? "" : uri.getRawPath();
+        String query = uri.getRawQuery();
+
+        if (host == null || host.isBlank()) return null;
+
+        String jdbc = "jdbc:postgresql://" + host + ":" + port + path + (query == null || query.isBlank() ? "" : "?" + query);
+
+        String userInfo = trimToNull(uri.getRawUserInfo());
+        String user = null;
+        String pass = null;
+        if (userInfo != null) {
+            int idx = userInfo.indexOf(':');
+            if (idx >= 0) {
+                user = decode(userInfo.substring(0, idx));
+                pass = decode(userInfo.substring(idx + 1));
+            } else {
+                user = decode(userInfo);
+            }
+        }
+
+        return new JdbcNormalization(jdbc, trimToNull(user), trimToNull(pass));
+    }
+
+    private static String decode(String s) {
+        return URLDecoder.decode(s, StandardCharsets.UTF_8);
     }
 
     private static String trimToNull(String s) {
@@ -126,6 +180,7 @@ public class SolarDbApiApplication {
     }
 
     private record HostPort(String host, int port) {}
+    private record JdbcNormalization(String jdbcUrl, String username, String password) {}
 
     private static void logJdbcDiagnostics() {
         String enable = trimToNull(System.getenv("DB_JDBC_DIAG"));
