@@ -20,7 +20,9 @@ public class SolarDbApiApplication {
         // Spring's datasource URL must be JDBC ("jdbc:postgresql://..."), so normalize early.
         normalizeDbUrlEnv();
         logJdbcDiagnostics();
-        SpringApplication.run(SolarDbApiApplication.class, args);
+        SpringApplication app = new SpringApplication(SolarDbApiApplication.class);
+        app.addListeners(new StartupDiagnosticsListener());
+        app.run(args);
     }
 
     private static void normalizeDbUrlEnv() {
